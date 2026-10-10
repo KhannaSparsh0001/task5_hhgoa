@@ -1,6 +1,6 @@
 /**
- * GitPulse & HabitGrid — Real-Time GitHub Intelligence & Developer Habit Platform
- * Connects directly to live GitHub Public REST APIs and live contribution endpoints.
+ * HabitGrid — Privacy-First Local-First Habit & Streak Tracker
+ * Zero servers. Zero cloud sync. 100% localStorage sandbox persistence.
  */
 
 class SoundFx {
@@ -26,8 +26,8 @@ class SoundFx {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(820, this.ctx.currentTime + 0.08);
+      osc.frequency.setValueAtTime(420, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(780, this.ctx.currentTime + 0.08);
 
       gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
@@ -64,7 +64,7 @@ class SoundFx {
 }
 
 const sound = new SoundFx();
-const STORAGE_KEY = 'gitpulse_custom_habits';
+const STORAGE_KEY = 'habitgrid_local_vault_v2';
 
 function formatDateKey(date) {
   const y = date.getFullYear();
@@ -73,127 +73,122 @@ function formatDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-class GitPulseApp {
+// Starter Habits with active recent streaks
+function getInitialStarterHabits() {
+  const today = new Date();
+  const makeHistory = (daysBack) => {
+    const hist = {};
+    for (let i = 0; i <= daysBack; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      hist[formatDateKey(d)] = (i % 3 === 0) ? 4 : 2;
+    }
+    return hist;
+  };
+
+  return [
+    {
+      id: 'habit-1',
+      name: 'Deep Work & Code (2 Hours)',
+      category: 'Coding',
+      frequency: 7,
+      color: 'emerald',
+      history: makeHistory(12)
+    },
+    {
+      id: 'habit-2',
+      name: 'Gym / Strength & Cardio',
+      category: 'Health',
+      frequency: 5,
+      color: 'cyan',
+      history: makeHistory(7)
+    },
+    {
+      id: 'habit-3',
+      name: 'Read 20 Pages (Technical Books)',
+      category: 'Learning',
+      frequency: 7,
+      color: 'purple',
+      history: makeHistory(4)
+    }
+  ];
+}
+
+class HabitGridApp {
   constructor() {
-    this.customHabits = this.loadCustomHabits();
+    this.habits = this.loadHabits();
+    this.selectedCategory = 'all';
+    this.searchQuery = '';
+    this.weeksSpan = 52;
     this.activeColorChoice = 'emerald';
     this.editingHabitId = null;
 
-    this.initElements();
-    this.attachEvents();
-
-    // Auto-fetch popular creator initially to show live data immediately
-    this.fetchLiveGithubData('torvalds');
-    this.renderCustomHabits();
+    this.initDOMElements();
+    this.attachEventListeners();
+    this.render();
   }
 
-  loadCustomHabits() {
+  loadHabits() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [
-      {
-        id: 'h-1',
-        name: 'Open Source PRs & Code Review',
-        category: 'Coding',
-        frequency: 7,
-        color: 'emerald',
-        history: {}
-      },
-      {
-        id: 'h-2',
-        name: 'LeetCode / DSA Daily Challenge',
-        category: 'Coding',
-        frequency: 5,
-        color: 'cyan',
-        history: {}
-      }
-    ];
+    } catch (e) {
+      console.warn('LocalStorage read error:', e);
+    }
+    return getInitialStarterHabits();
   }
 
-  saveCustomHabits() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.customHabits));
+  saveHabits() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.habits));
+    } catch (e) {
+      console.error('LocalStorage write error:', e);
+    }
   }
 
-  initElements() {
-    // Search elements
-    this.githubSearchForm = document.getElementById('githubSearchForm');
-    this.githubUserInput = document.getElementById('githubUserInput');
-    this.fetchLoader = document.getElementById('fetchLoader');
-    this.fetchError = document.getElementById('fetchError');
-
-    // Showcase elements
-    this.userShowcaseCard = document.getElementById('userShowcaseCard');
-    this.userAvatar = document.getElementById('userAvatar');
-    this.userDisplayName = document.getElementById('userDisplayName');
-    this.userGithubLink = document.getElementById('userGithubLink');
-    this.userBio = document.getElementById('userBio');
-    this.userLocationChip = document.getElementById('userLocationChip');
-    this.userCompanyChip = document.getElementById('userCompanyChip');
-    this.userFollowersChip = document.getElementById('userFollowersChip');
-    this.userReposChip = document.getElementById('userReposChip');
-
-    // Live Metrics
-    this.liveCurrentStreak = document.getElementById('liveCurrentStreak');
-    this.liveLongestStreak = document.getElementById('liveLongestStreak');
-    this.liveTotalCommits = document.getElementById('liveTotalCommits');
-    this.liveVelocityScore = document.getElementById('liveVelocityScore');
-    this.liveHeatmapWrapper = document.getElementById('liveHeatmapWrapper');
-    this.recentEventsList = document.getElementById('recentEventsList');
-
-    // Tooltip
-    this.tooltip = document.getElementById('gridTooltip');
-
-    // Custom Habits DOM
+  initDOMElements() {
+    this.habitsListEl = document.getElementById('habitsList');
     this.todayChipsContainer = document.getElementById('todayChipsContainer');
-    this.habitsList = document.getElementById('habitsList');
     this.currentDateDisplay = document.getElementById('currentDateDisplay');
+    this.searchInput = document.getElementById('searchInput');
+    this.categoryFilters = document.getElementById('categoryFilters');
+    this.timeRangeSelect = document.getElementById('timeRangeSelect');
 
-    // Modal
+    this.globalStreakEl = document.getElementById('globalCurrentStreak');
+    this.globalTodayScoreEl = document.getElementById('globalTodayScore');
+    this.globalTotalChecksEl = document.getElementById('globalTotalChecks');
+    this.globalYearRateEl = document.getElementById('globalYearRate');
+
     this.modal = document.getElementById('habitModal');
-    this.newHabitBtn = document.getElementById('newHabitBtn');
-    this.closeModalBtn = document.getElementById('closeModalBtn');
-    this.cancelModalBtn = document.getElementById('cancelModalBtn');
+    this.modalTitle = document.getElementById('modalTitle');
     this.habitForm = document.getElementById('habitForm');
     this.habitNameInput = document.getElementById('habitName');
     this.habitCategoryInput = document.getElementById('habitCategory');
     this.habitFrequencyInput = document.getElementById('habitFrequency');
+    this.editHabitIdInput = document.getElementById('editHabitId');
     this.colorPicker = document.getElementById('colorPicker');
+
+    this.newHabitBtn = document.getElementById('newHabitBtn');
+    this.exportBtn = document.getElementById('exportBtn');
     this.soundToggleBtn = document.getElementById('soundToggleBtn');
+    this.closeModalBtn = document.getElementById('closeModalBtn');
+    this.cancelModalBtn = document.getElementById('cancelModalBtn');
+
+    this.tooltip = document.getElementById('gridTooltip');
   }
 
-  attachEvents() {
-    // Form search
-    this.githubSearchForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const username = this.githubUserInput.value.trim();
-      if (username) this.fetchLiveGithubData(username);
-    });
-
-    // Quick tags
-    document.querySelectorAll('.quick-tag-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const username = btn.dataset.user;
-        this.githubUserInput.value = username;
-        this.fetchLiveGithubData(username);
-      });
-    });
-
-    // Sound toggle
+  attachEventListeners() {
     this.soundToggleBtn.addEventListener('click', () => {
       sound.enabled = !sound.enabled;
       this.soundToggleBtn.style.opacity = sound.enabled ? '1' : '0.4';
       if (sound.enabled) sound.playPop();
     });
 
-    // Custom Habit Modal
+    this.exportBtn.addEventListener('click', () => this.exportData());
+
     this.newHabitBtn.addEventListener('click', () => this.openModal());
     this.closeModalBtn.addEventListener('click', () => this.closeModal());
     this.cancelModalBtn.addEventListener('click', () => this.closeModal());
-    this.modal.addEventListener('click', (e) => {
-      if (e.target === this.modal) this.closeModal();
-    });
 
     this.colorPicker.querySelectorAll('.color-swatch').forEach(swatch => {
       swatch.addEventListener('click', () => {
@@ -205,217 +200,359 @@ class GitPulseApp {
 
     this.habitForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const name = this.habitNameInput.value.trim();
-      if (!name) return;
+      this.handleSaveHabit();
+    });
 
-      this.customHabits.unshift({
-        id: 'h_' + Date.now(),
-        name,
-        category: this.habitCategoryInput.value,
-        frequency: parseInt(this.habitFrequencyInput.value, 10),
-        color: this.activeColorChoice,
-        history: {}
-      });
+    this.searchInput.addEventListener('input', (e) => {
+      this.searchQuery = e.target.value.toLowerCase().trim();
+      this.renderHabitsList();
+    });
 
-      this.saveCustomHabits();
-      this.closeModal();
-      sound.playSuccess();
-      this.renderCustomHabits();
+    this.categoryFilters.addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      this.categoryFilters.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      this.selectedCategory = btn.dataset.category;
+      this.renderHabitsList();
+    });
+
+    this.timeRangeSelect.addEventListener('change', (e) => {
+      this.weeksSpan = parseInt(e.target.value, 10);
+      this.renderHabitsList();
+    });
+
+    this.modal.addEventListener('click', (e) => {
+      if (e.target === this.modal) this.closeModal();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.modal.classList.contains('open')) {
+        this.closeModal();
+      }
     });
   }
 
-  openModal() {
-    this.habitForm.reset();
+  exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.habits, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `habitgrid_backup_${formatDateKey(new Date())}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    sound.playSuccess();
+  }
+
+  openModal(habitToEdit = null) {
+    if (habitToEdit) {
+      this.modalTitle.textContent = 'Edit Habit';
+      this.editingHabitId = habitToEdit.id;
+      this.editHabitIdInput.value = habitToEdit.id;
+      this.habitNameInput.value = habitToEdit.name;
+      this.habitCategoryInput.value = habitToEdit.category;
+      this.habitFrequencyInput.value = habitToEdit.frequency;
+      this.activeColorChoice = habitToEdit.color || 'emerald';
+    } else {
+      this.modalTitle.textContent = 'Create New Habit';
+      this.editingHabitId = null;
+      this.editHabitIdInput.value = '';
+      this.habitNameInput.value = '';
+      this.habitCategoryInput.value = 'Coding';
+      this.habitFrequencyInput.value = '7';
+      this.activeColorChoice = 'emerald';
+    }
+
+    this.colorPicker.querySelectorAll('.color-swatch').forEach(swatch => {
+      swatch.classList.toggle('selected', swatch.dataset.color === this.activeColorChoice);
+    });
+
     this.modal.classList.add('open');
     this.habitNameInput.focus();
   }
 
   closeModal() {
     this.modal.classList.remove('open');
+    this.editingHabitId = null;
+    this.habitForm.reset();
   }
 
-  async fetchLiveGithubData(username) {
-    this.fetchLoader.style.display = 'flex';
-    this.fetchError.style.display = 'none';
+  handleSaveHabit() {
+    const name = this.habitNameInput.value.trim();
+    if (!name) return;
 
-    try {
-      // 1. Fetch GitHub User Profile
-      const userRes = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`);
-      if (!userRes.ok) {
-        if (userRes.status === 404) throw new Error(`GitHub user "${username}" was not found.`);
-        throw new Error(`GitHub API rate limit or error (${userRes.status})`);
-      }
-      const userData = await userRes.json();
+    const category = this.habitCategoryInput.value;
+    const frequency = parseInt(this.habitFrequencyInput.value, 10);
+    const color = this.activeColorChoice;
 
-      // 2. Fetch Live Contribution Matrix (using fast public GitHub scraper API)
-      let contributionsData = null;
-      try {
-        const contribRes = await fetch(`https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=last`);
-        if (contribRes.ok) {
-          contributionsData = await contribRes.json();
-        }
-      } catch (err) {
-        console.warn('Contributions endpoint failed, fallback to events', err);
-      }
-
-      // 3. Fetch Recent Public Events
-      let eventsData = [];
-      try {
-        const eventsRes = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}/events/public?per_page=6`);
-        if (eventsRes.ok) {
-          eventsData = await eventsRes.json();
-        }
-      } catch (err) {}
-
-      // Update UI with real live data
-      this.renderUserShowcase(userData, contributionsData, eventsData);
-      sound.playSuccess();
-    } catch (err) {
-      this.fetchError.textContent = err.message || 'Failed to fetch data from GitHub API.';
-      this.fetchError.style.display = 'block';
-    } finally {
-      this.fetchLoader.style.display = 'none';
-    }
-  }
-
-  renderUserShowcase(user, contributions, events) {
-    this.userShowcaseCard.style.display = 'block';
-
-    // Populate profile info
-    this.userAvatar.src = user.avatar_url;
-    this.userDisplayName.textContent = user.name || user.login;
-    this.userGithubLink.textContent = `@${user.login}`;
-    this.userGithubLink.href = user.html_url;
-    this.userBio.textContent = user.bio || 'Public GitHub contributor.';
-
-    this.userLocationChip.textContent = `📍 ${user.location || 'Remote'}`;
-    this.userCompanyChip.textContent = `🏢 ${user.company || 'Open Source'}`;
-    this.userFollowersChip.textContent = `👥 ${user.followers.toLocaleString()} Followers`;
-    this.userReposChip.textContent = `📦 ${user.public_repos.toLocaleString()} Public Repos`;
-
-    // Process contributions
-    let contribDays = [];
-    let totalCommits = 0;
-    let activeDaysCount = 0;
-    let currentStreak = 0;
-    let longestStreak = 0;
-
-    if (contributions && contributions.contributions) {
-      contribDays = contributions.contributions;
-      totalCommits = contributions.total ? (contributions.total[new Date().getFullYear()] || 0) : 0;
-    }
-
-    // Map contributions by date
-    const contribMap = {};
-    if (contribDays.length > 0) {
-      contribDays.forEach(d => {
-        contribMap[d.date] = d;
-        if (d.count > 0) activeDaysCount++;
-      });
-      if (totalCommits === 0) {
-        totalCommits = contribDays.reduce((sum, d) => sum + (d.count || 0), 0);
-      }
-
-      // Compute live streaks
-      const sortedDates = [...contribDays].sort((a, b) => new Date(a.date) - new Date(b.date));
-      let tempStreak = 0;
-
-      sortedDates.forEach(d => {
-        if (d.count > 0) {
-          tempStreak++;
-          if (tempStreak > longestStreak) longestStreak = tempStreak;
-        } else {
-          tempStreak = 0;
-        }
-      });
-
-      // Calculate current streak backwards from today
-      const today = new Date();
-      let check = new Date(today);
-      const todayKey = formatDateKey(today);
-      if (!contribMap[todayKey] || contribMap[todayKey].count === 0) {
-        check.setDate(check.getDate() - 1);
-      }
-      while (true) {
-        const key = formatDateKey(check);
-        if (contribMap[key] && contribMap[key].count > 0) {
-          currentStreak++;
-          check.setDate(check.getDate() - 1);
-        } else {
-          break;
-        }
+    if (this.editingHabitId) {
+      const habit = this.habits.find(h => h.id === this.editingHabitId);
+      if (habit) {
+        habit.name = name;
+        habit.category = category;
+        habit.frequency = frequency;
+        habit.color = color;
       }
     } else {
-      totalCommits = user.public_repos * 14;
-      currentStreak = 4;
-      longestStreak = 18;
-      activeDaysCount = 86;
+      const newHabit = {
+        id: 'habit_' + Date.now(),
+        name,
+        category,
+        frequency,
+        color,
+        createdAt: new Date().toISOString(),
+        history: {}
+      };
+      this.habits.unshift(newHabit);
     }
 
-    const consistencyRate = Math.min(100, Math.round((activeDaysCount / 365) * 100));
-
-    this.liveCurrentStreak.textContent = `${currentStreak} days`;
-    this.liveLongestStreak.textContent = `${longestStreak} days`;
-    this.liveTotalCommits.textContent = totalCommits.toLocaleString();
-    this.liveVelocityScore.textContent = `${consistencyRate}%`;
-
-    // Render Real Live Heatmap
-    this.renderLiveHeatmap(contribMap, user.login);
-
-    // Render Recent Events
-    this.renderRecentEvents(events);
+    this.saveHabits();
+    this.closeModal();
+    sound.playSuccess();
+    this.render();
   }
 
-  renderLiveHeatmap(contribMap, username) {
-    this.liveHeatmapWrapper.innerHTML = '';
+  deleteHabit(id) {
+    if (confirm('Delete this habit from your local storage?')) {
+      this.habits = this.habits.filter(h => h.id !== id);
+      this.saveHabits();
+      sound.playPop();
+      this.render();
+    }
+  }
+
+  toggleDayStatus(habitId, dateKey) {
+    const habit = this.habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    if (!habit.history) habit.history = {};
+
+    const currentLevel = habit.history[dateKey] || 0;
+    let nextLevel = 0;
+    if (currentLevel === 0) nextLevel = 2;
+    else if (currentLevel <= 2) nextLevel = 4;
+    else nextLevel = 0;
+
+    if (nextLevel === 0) {
+      delete habit.history[dateKey];
+    } else {
+      habit.history[dateKey] = nextLevel;
+    }
+
+    this.saveHabits();
+    sound.playPop();
+    this.renderGlobalStats();
+    this.renderTodayChips();
+    this.updateCardMetrics(habit);
+
+    const cellEl = document.querySelector(`.heat-cell[data-habit="${habitId}"][data-date="${dateKey}"]`);
+    if (cellEl) {
+      cellEl.setAttribute('data-level', nextLevel);
+    }
+  }
+
+  getHabitStats(habit) {
+    const today = new Date();
+    const todayKey = formatDateKey(today);
+    const history = habit.history || {};
+
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let totalCheckIns = 0;
+
+    const doneToday = !!history[todayKey];
+    let checkDate = new Date(today);
+    if (!doneToday) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    while (true) {
+      const key = formatDateKey(checkDate);
+      if (history[key]) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    for (let i = 365; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = formatDateKey(d);
+
+      if (history[key]) {
+        totalCheckIns++;
+        tempStreak++;
+        if (tempStreak > longestStreak) longestStreak = tempStreak;
+      } else {
+        tempStreak = 0;
+      }
+    }
+
+    const consistencyRate = Math.round((totalCheckIns / 365) * 100);
+
+    return {
+      currentStreak,
+      longestStreak,
+      totalCheckIns,
+      consistencyRate,
+      doneToday
+    };
+  }
+
+  render() {
+    this.renderDateHeader();
+    this.renderGlobalStats();
+    this.renderTodayChips();
+    this.renderHabitsList();
+  }
+
+  renderDateHeader() {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    this.currentDateDisplay.textContent = new Date().toLocaleDateString(undefined, options);
+  }
+
+  renderGlobalStats() {
+    let maxCurrentStreak = 0;
+    let totalChecks = 0;
+    let todayDoneCount = 0;
+    const todayKey = formatDateKey(new Date());
+
+    this.habits.forEach(habit => {
+      const stats = this.getHabitStats(habit);
+      if (stats.currentStreak > maxCurrentStreak) maxCurrentStreak = stats.currentStreak;
+      totalChecks += stats.totalCheckIns;
+      if (habit.history && habit.history[todayKey]) todayDoneCount++;
+    });
+
+    const totalHabits = this.habits.length;
+    const avgConsistency = totalHabits > 0
+      ? Math.round(this.habits.reduce((acc, h) => acc + this.getHabitStats(h).consistencyRate, 0) / totalHabits)
+      : 0;
+
+    this.globalStreakEl.textContent = `${maxCurrentStreak} days`;
+    this.globalTodayScoreEl.textContent = `${todayDoneCount} / ${totalHabits}`;
+    this.globalTotalChecksEl.textContent = totalChecks.toLocaleString();
+    this.globalYearRateEl.textContent = `${avgConsistency}%`;
+  }
+
+  renderTodayChips() {
+    this.todayChipsContainer.innerHTML = '';
+    const todayKey = formatDateKey(new Date());
+
+    if (this.habits.length === 0) {
+      this.todayChipsContainer.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No habits in local storage yet. Click "+ New Habit"</span>';
+      return;
+    }
+
+    this.habits.forEach(habit => {
+      const isDone = !!(habit.history && habit.history[todayKey]);
+      const chip = document.createElement('div');
+      chip.className = `habit-chip ${isDone ? 'done' : ''}`;
+      chip.innerHTML = `
+        <span class="chip-check">${isDone ? '&#10003;' : ''}</span>
+        <span>${escapeHtml(habit.name)}</span>
+      `;
+      chip.addEventListener('click', () => {
+        this.toggleDayStatus(habit.id, todayKey);
+      });
+      this.todayChipsContainer.appendChild(chip);
+    });
+  }
+
+  updateCardMetrics(habit) {
+    const cardEl = document.getElementById(`habit-card-${habit.id}`);
+    if (!cardEl) return;
+    const stats = this.getHabitStats(habit);
+    cardEl.querySelector('.streak-val').textContent = `${stats.currentStreak}d`;
+    cardEl.querySelector('.best-val').textContent = `${stats.longestStreak}d`;
+    cardEl.querySelector('.rate-val').textContent = `${stats.consistencyRate}%`;
+  }
+
+  renderHabitsList() {
+    this.habitsListEl.innerHTML = '';
+
+    const filtered = this.habits.filter(h => {
+      const matchesCategory = this.selectedCategory === 'all' || h.category === this.selectedCategory;
+      const matchesSearch = !this.searchQuery || 
+        h.name.toLowerCase().includes(this.searchQuery) || 
+        h.category.toLowerCase().includes(this.searchQuery);
+      return matchesCategory && matchesSearch;
+    });
+
+    if (filtered.length === 0) {
+      this.habitsListEl.innerHTML = `
+        <div class="empty-state">
+          <h3>No Habits Active</h3>
+          <p>Add a new habit to start tracking your local activity heatmaps.</p>
+          <button class="btn btn-primary" onclick="window.app.openModal()">+ Add New Habit</button>
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(habit => {
+      const card = this.createHabitCard(habit);
+      this.habitsListEl.appendChild(card);
+    });
+  }
+
+  createHabitCard(habit) {
+    const stats = this.getHabitStats(habit);
+    const card = document.createElement('div');
+    card.className = `habit-card ${habit.color || 'emerald'}-theme`;
+    card.id = `habit-card-${habit.id}`;
+
+    const cardTop = document.createElement('div');
+    cardTop.className = 'card-top';
+    cardTop.innerHTML = `
+      <div class="card-title-group">
+        <span class="habit-badge">${escapeHtml(habit.category)}</span>
+        <h3 class="habit-name">${escapeHtml(habit.name)}</h3>
+      </div>
+      <div class="card-metrics">
+        <div class="metric-item">
+          <span class="metric-label">Streak:</span>
+          <span class="metric-value streak-val">${stats.currentStreak}d</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Best:</span>
+          <span class="metric-value best-val">${stats.longestStreak}d</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Rate:</span>
+          <span class="metric-value rate-val">${stats.consistencyRate}%</span>
+        </div>
+        <div class="card-actions">
+          <button class="icon-action-btn edit-btn" title="Edit">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <button class="icon-action-btn delete delete-btn" title="Delete">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+
+    cardTop.querySelector('.edit-btn').addEventListener('click', () => this.openModal(habit));
+    cardTop.querySelector('.delete-btn').addEventListener('click', () => this.deleteHabit(habit.id));
+
+    const heatmapWrapper = document.createElement('div');
+    heatmapWrapper.className = 'heatmap-wrapper';
+
     const heatmapInner = document.createElement('div');
     heatmapInner.className = 'heatmap-inner';
 
-    const today = new Date();
-    const todayDayOfWeek = today.getDay();
-    const numWeeks = 52;
-    const totalDays = (numWeeks - 1) * 7 + (todayDayOfWeek + 1);
+    const { weeks, monthLabels } = this.calculateGridMatrix(this.weeksSpan);
 
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - totalDays + 1);
-
-    const weeks = [];
-    const monthLabels = [];
-    let lastMonth = -1;
-    let currentDate = new Date(startDate);
-
-    for (let w = 0; w < numWeeks; w++) {
-      const week = [];
-      for (let d = 0; d < 7; d++) {
-        const dateKey = formatDateKey(currentDate);
-        const inRange = currentDate <= today;
-
-        if (d === 0 && inRange) {
-          const curMonth = currentDate.getMonth();
-          if (curMonth !== lastMonth) {
-            monthLabels.push({
-              weekIndex: w,
-              name: currentDate.toLocaleString('default', { month: 'short' })
-            });
-            lastMonth = curMonth;
-          }
-        }
-
-        const contribInfo = contribMap[dateKey] || { count: 0, level: 0 };
-        week.push({
-          date: new Date(currentDate),
-          dateKey,
-          inRange,
-          count: contribInfo.count || 0,
-          level: contribInfo.level || 0
-        });
-
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      weeks.push(week);
-    }
-
-    // Month Row
     const monthRow = document.createElement('div');
     monthRow.className = 'month-labels-row';
     monthRow.style.position = 'relative';
@@ -428,7 +565,6 @@ class GitPulseApp {
       monthRow.appendChild(labelSpan);
     });
 
-    // Grid Body
     const gridBody = document.createElement('div');
     gridBody.className = 'grid-body';
 
@@ -456,31 +592,17 @@ class GitPulseApp {
         cell.className = 'heat-cell';
 
         if (day.inRange) {
-          cell.setAttribute('data-level', day.level);
+          const level = (habit.history && habit.history[day.dateKey]) || 0;
+          cell.setAttribute('data-level', level);
           cell.setAttribute('data-date', day.dateKey);
+          cell.setAttribute('data-habit', habit.id);
 
-          cell.addEventListener('mouseenter', (e) => {
-            const formatted = day.date.toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
-            });
-            const text = day.count > 0 
-              ? `${day.count} contributions on ${formatted}` 
-              : `No contributions on ${formatted}`;
-
-            this.tooltip.innerHTML = `<strong>@${escapeHtml(username)}</strong>: ${text}`;
-            this.tooltip.classList.add('visible');
-
-            const rect = e.target.getBoundingClientRect();
-            this.tooltip.style.top = `${rect.top - 34}px`;
-            this.tooltip.style.left = `${rect.left + rect.width / 2}px`;
-            this.tooltip.style.transform = 'translateX(-50%)';
+          cell.addEventListener('click', () => {
+            this.toggleDayStatus(habit.id, day.dateKey);
           });
 
-          cell.addEventListener('mouseleave', () => {
-            this.tooltip.classList.remove('visible');
-          });
+          cell.addEventListener('mouseenter', (e) => this.showTooltip(e, habit, day.date, level));
+          cell.addEventListener('mouseleave', () => this.hideTooltip());
         } else {
           cell.style.visibility = 'hidden';
         }
@@ -496,91 +618,99 @@ class GitPulseApp {
 
     heatmapInner.appendChild(monthRow);
     heatmapInner.appendChild(gridBody);
-    this.liveHeatmapWrapper.appendChild(heatmapInner);
+    heatmapWrapper.appendChild(heatmapInner);
+
+    const heatmapFooter = document.createElement('div');
+    heatmapFooter.className = 'heatmap-footer';
+    heatmapFooter.innerHTML = `
+      <span>${stats.totalCheckIns} check-ins in the past year</span>
+      <div class="legend">
+        <span>Less</span>
+        <div class="legend-cells">
+          <div class="legend-cell" style="background-color: var(--cell-bg-empty)"></div>
+          <div class="legend-cell" style="background-color: var(--${habit.color || 'emerald'}-1)"></div>
+          <div class="legend-cell" style="background-color: var(--${habit.color || 'emerald'}-2)"></div>
+          <div class="legend-cell" style="background-color: var(--${habit.color || 'emerald'}-3)"></div>
+          <div class="legend-cell" style="background-color: var(--${habit.color || 'emerald'}-4)"></div>
+        </div>
+        <span>More</span>
+      </div>
+    `;
+
+    card.appendChild(cardTop);
+    card.appendChild(heatmapWrapper);
+    card.appendChild(heatmapFooter);
+
+    return card;
   }
 
-  renderRecentEvents(events) {
-    this.recentEventsList.innerHTML = '';
-    if (!events || events.length === 0) {
-      this.recentEventsList.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No recent public events found.</span>';
-      return;
+  calculateGridMatrix(numWeeks = 52) {
+    const today = new Date();
+    const todayDayOfWeek = today.getDay();
+    const weeks = [];
+    const monthLabels = [];
+    let lastMonth = -1;
+
+    const totalDays = (numWeeks - 1) * 7 + (todayDayOfWeek + 1);
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - totalDays + 1);
+
+    let currentDate = new Date(startDate);
+
+    for (let w = 0; w < numWeeks; w++) {
+      const week = [];
+
+      for (let d = 0; d < 7; d++) {
+        const dateKey = formatDateKey(currentDate);
+        const inRange = currentDate <= today;
+
+        if (d === 0 && inRange) {
+          const curMonth = currentDate.getMonth();
+          if (curMonth !== lastMonth) {
+            monthLabels.push({
+              weekIndex: w,
+              name: currentDate.toLocaleString('default', { month: 'short' })
+            });
+            lastMonth = curMonth;
+          }
+        }
+
+        week.push({
+          date: new Date(currentDate),
+          dateKey,
+          inRange
+        });
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      weeks.push(week);
     }
 
-    events.slice(0, 6).forEach(ev => {
-      const card = document.createElement('div');
-      card.className = 'event-card';
-      const eventName = ev.type.replace('Event', '');
-      const timeStr = new Date(ev.created_at).toLocaleString();
-
-      card.innerHTML = `
-        <div>
-          <span class="event-type">${escapeHtml(eventName)}</span>
-          <span class="event-repo">${escapeHtml(ev.repo.name)}</span>
-        </div>
-        <div class="event-time">${timeStr}</div>
-      `;
-      this.recentEventsList.appendChild(card);
-    });
+    return { weeks, monthLabels };
   }
 
-  renderCustomHabits() {
-    const todayFormatted = new Date().toLocaleDateString(undefined, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    this.currentDateDisplay.textContent = todayFormatted;
-
-    const todayKey = formatDateKey(new Date());
-    this.todayChipsContainer.innerHTML = '';
-
-    this.customHabits.forEach(habit => {
-      const isDone = !!(habit.history && habit.history[todayKey]);
-      const chip = document.createElement('div');
-      chip.className = `habit-chip ${isDone ? 'done' : ''}`;
-      chip.innerHTML = `
-        <span class="chip-check">${isDone ? '&#10003;' : ''}</span>
-        <span>${escapeHtml(habit.name)}</span>
-      `;
-      chip.addEventListener('click', () => {
-        if (!habit.history) habit.history = {};
-        if (habit.history[todayKey]) delete habit.history[todayKey];
-        else habit.history[todayKey] = 3;
-        this.saveCustomHabits();
-        sound.playPop();
-        this.renderCustomHabits();
-      });
-      this.todayChipsContainer.appendChild(chip);
+  showTooltip(e, habit, date, level) {
+    const dateFormatted = date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     });
 
-    this.habitsList.innerHTML = '';
-    this.customHabits.forEach(habit => {
-      const card = document.createElement('div');
-      card.className = 'habit-card';
-      card.innerHTML = `
-        <div class="card-top">
-          <div>
-            <span class="habit-badge">${escapeHtml(habit.category)}</span>
-            <strong style="margin-left:8px;">${escapeHtml(habit.name)}</strong>
-          </div>
-          <button class="btn btn-secondary icon-btn delete-habit-btn" title="Delete">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-        </div>
-        <p style="font-size:0.82rem;color:var(--text-secondary);">Goal: ${habit.frequency} times per week &bull; Syncs with local storage</p>
-      `;
-      card.querySelector('.delete-habit-btn').addEventListener('click', () => {
-        this.customHabits = this.customHabits.filter(h => h.id !== habit.id);
-        this.saveCustomHabits();
-        sound.playPop();
-        this.renderCustomHabits();
-      });
-      this.habitsList.appendChild(card);
-    });
+    const statusText = level > 0 
+      ? `Completed on ${dateFormatted}` 
+      : `No activity logged on ${dateFormatted}`;
+
+    this.tooltip.innerHTML = `<strong>${escapeHtml(habit.name)}</strong>: ${statusText}`;
+    this.tooltip.classList.add('visible');
+
+    const rect = e.target.getBoundingClientRect();
+    this.tooltip.style.top = `${rect.top - 34}px`;
+    this.tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    this.tooltip.style.transform = 'translateX(-50%)';
+  }
+
+  hideTooltip() {
+    this.tooltip.classList.remove('visible');
   }
 }
 
@@ -595,5 +725,5 @@ function escapeHtml(str) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  window.app = new GitPulseApp();
+  window.app = new HabitGridApp();
 });

@@ -1,34 +1,60 @@
-# GitPulse — Real-Time Developer Activity & Habit Intelligence
+# HabitGrid — Privacy-First Local-First Habit & Streak Tracker
 
-GitPulse is a real-time developer activity tracking and habit intelligence suite connected directly to live GitHub Public APIs and contribution feeds.
+HabitGrid is a modern, dark-mode personal habit tracker featuring GitHub-style contribution activity heatmaps, streak analytics, and zero-telemetry local sandbox persistence.
 
 Built as part of the **Wispr Flow Development Showcase** using voice-directed workflows.
 
 ---
 
-## ⚡ Live Features
+## 🔒 100% Privacy-First & Local-First
 
-- **Live GitHub API Profile Inspector**:
-  - Enter any public GitHub username (e.g. `torvalds`, `shadcn`, `antfu`, or your own username).
-  - Fetches genuine avatar, bio, follower count, company, location, and public repository counts.
-- **Genuine 52-Week Contribution Matrix**:
-  - Pulls real 365-day commit data via live GitHub contribution feeds.
-  - Interactive hover tooltips showing actual contribution counts and timestamps for each date.
-- **Real Developer Velocity & Streak Engine**:
-  - Computes real consecutive active streaks backwards from today.
-  - Calculates all-time longest streak in the current 365-day window.
-  - Computes total annual commits and activity consistency percentage.
-- **Public Activity Stream**:
-  - Displays real recent public GitHub events (`PushEvent`, `PullRequestEvent`, `IssueCommentEvent`) and affected repositories in real-time.
-- **Personal Habit Tracker**:
-  - Log offline or local developer routines (e.g., LeetCode, System Design, Gym) alongside GitHub code velocity.
-  - Web Audio API synthesized feedback sounds.
+- **Zero Cloud / Zero Telemetry**: Your habits and daily routines never touch external servers or third-party trackers.
+- **Persistent Local Sandbox**: All records are stored client-side via browser `localStorage` (with JSON export backup support).
+- **Offline Capable**: Functions seamlessly without an active internet connection.
+
+---
+
+## ✨ Features
+
+- **GitHub-Style Contribution Heatmaps**:
+  - Interactive 52-week, 26-week, and 12-week commit activity matrix grids.
+  - Click any cell in the grid to log or toggle completion for that day.
+  - Hover tooltips showing exact completion dates and status.
+- **Streak & Consistency Analytics**:
+  - Real active streak calculator (counting backwards from today).
+  - All-time longest streak in the current 365-day window.
+  - Annual consistency rate percentage.
+  - Total cumulative check-in counter.
+- **"Quick Daily Log" Bar**:
+  - One-click daily toggle chips for morning and evening habit check-ins.
+- **Data Portability**:
+  - 1-click JSON export to backup or transfer your habit vault.
+- **Synthesized Audio Feedback**:
+  - Subtle feedback sounds generated in-browser with the Web Audio API.
 
 ---
 
 ## 🚀 How to Run
 
-1. Open `index.html` in any browser:
-   - On Windows: Double-click `index.html` or run `start index.html` in PowerShell.
-2. Enter any GitHub username in the top search box and hit **Fetch Live Data**.
-3. Or click one of the quick test profile chips (`Linus Torvalds`, `shadcn`, `Anthony Fu`).
+### Method 1: Direct Browser (No Server Needed)
+Double click `index.html` or run:
+```powershell
+start index.html
+```
+
+### Method 2: Python Local Server
+```powershell
+python -m http.server 8000
+```
+Then visit `http://localhost:8000` in your browser.
+
+### Method 3: Node.js (npx serve)
+```powershell
+npx serve .
+```
+
+---
+
+## 🎙️ Built with Wispr Flow
+
+Created using voice-driven development with [Wispr Flow](https://wisprflow.ai), turning spoken specifications and prompts into a production-ready application.
