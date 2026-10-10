@@ -3,230 +3,261 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HabitGrid — GitHub-Style Habit & Streak Tracker</title>
+  <title>GitPulse & HabitGrid — Real-Time Developer Activity & Habit Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Ambient background glow elements -->
   <div class="bg-glow glow-1"></div>
   <div class="bg-glow glow-2"></div>
 
   <div class="app-container">
-    <!-- Top Header -->
+    <!-- Header -->
     <header class="app-header">
       <div class="brand">
         <div class="brand-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
           </svg>
         </div>
         <div>
-          <div class="brand-title">Habit<span>Grid</span></div>
-          <div class="brand-tagline">GitHub-Style Contribution Heatmap Tracker</div>
+          <div class="brand-title">GitPulse <span>&bull; Live</span></div>
+          <div class="brand-tagline">Real-Time GitHub Activity & Developer Habit Intelligence</div>
         </div>
       </div>
 
       <div class="header-actions">
         <button id="soundToggleBtn" class="btn btn-secondary icon-btn" title="Toggle audio feedback">
-          <svg id="soundIconOn" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
           </svg>
         </button>
-        <button id="demoDataBtn" class="btn btn-secondary">
+        <button id="newHabitBtn" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-          </svg>
-          Load Demo Data
-        </button>
-        <button id="newHabitBtn" class="btn btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          New Habit
+          Custom Habit
         </button>
       </div>
     </header>
 
-    <!-- Global Stats Overview -->
-    <section class="stats-overview">
-      <div class="stat-card">
-        <div class="stat-icon emerald">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+    <!-- LIVE GITHUB SEARCH HERO BAR -->
+    <section class="live-search-card">
+      <div class="search-title">
+        <span class="live-dot"></span>
+        <h3>Live GitHub Profile & Contribution Inspector</h3>
+        <span class="api-badge">LIVE API CONNECTED</span>
+      </div>
+      <p class="search-desc">Enter any public GitHub username to fetch real-time commits, streaks, active repos, and genuine 365-day contribution heatmaps.</p>
+      
+      <form id="githubSearchForm" class="github-search-form">
+        <div class="input-wrapper">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
           </svg>
+          <input type="text" id="githubUserInput" placeholder="Enter GitHub handle (e.g. torvalds, shadcn, antfu)..." required>
         </div>
-        <div class="stat-details">
-          <div class="stat-value" id="globalCurrentStreak">0 days</div>
-          <div class="stat-label">Best Active Streak</div>
+        <button type="submit" class="btn btn-primary" id="fetchGithubBtn">
+          <span>Fetch Live Data</span>
+        </button>
+      </form>
+
+      <div class="quick-tags">
+        <span>Quick Test Profiles:</span>
+        <button class="quick-tag-btn" data-user="torvalds">Linus Torvalds</button>
+        <button class="quick-tag-btn" data-user="shadcn">shadcn</button>
+        <button class="quick-tag-btn" data-user="antfu">Anthony Fu</button>
+        <button class="quick-tag-btn" data-user="sindresorhus">Sindre Sorhus</button>
+      </div>
+
+      <div id="fetchLoader" class="fetch-loader" style="display: none;">
+        <div class="spinner"></div>
+        <span>Querying live GitHub endpoints and aggregating 365-day contribution matrix...</span>
+      </div>
+
+      <div id="fetchError" class="fetch-error" style="display: none;"></div>
+    </section>
+
+    <!-- LIVE USER PROFILE SHOWCASE (DYNAMIC) -->
+    <section id="userShowcaseCard" class="user-showcase-card" style="display: none;">
+      <div class="user-hero-top">
+        <img id="userAvatar" src="" alt="Avatar" class="user-avatar">
+        <div class="user-info">
+          <div class="user-name-row">
+            <h2 id="userDisplayName">Name</h2>
+            <a id="userGithubLink" href="#" target="_blank" class="user-handle">@username</a>
+          </div>
+          <p id="userBio" class="user-bio">Bio goes here...</p>
+          <div class="user-meta-chips">
+            <span id="userLocationChip" class="meta-chip"></span>
+            <span id="userCompanyChip" class="meta-chip"></span>
+            <span id="userFollowersChip" class="meta-chip"></span>
+            <span id="userReposChip" class="meta-chip"></span>
+          </div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon cyan">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
+      <!-- Live Calculated Stats -->
+      <div class="stats-overview live-stats">
+        <div class="stat-card">
+          <div class="stat-icon emerald">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+            </svg>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="liveCurrentStreak">0 days</div>
+            <div class="stat-label">Real Active Streak</div>
+          </div>
         </div>
-        <div class="stat-details">
-          <div class="stat-value" id="globalTodayScore">0 / 0</div>
-          <div class="stat-label">Completed Today</div>
+
+        <div class="stat-card">
+          <div class="stat-icon cyan">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="liveLongestStreak">0 days</div>
+            <div class="stat-label">Longest Streak (Year)</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="liveTotalCommits">0</div>
+            <div class="stat-label">Total Annual Commits</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="liveVelocityScore">0%</div>
+            <div class="stat-label">Consistency Score</div>
+          </div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon purple">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
+      <!-- Real Live Heatmap Container -->
+      <div class="live-heatmap-section">
+        <div class="section-title-row">
+          <h4>Live 52-Week Contribution Matrix</h4>
+          <span class="live-status-pill">&#9679; Synced from GitHub API</span>
         </div>
-        <div class="stat-details">
-          <div class="stat-value" id="globalTotalChecks">0</div>
-          <div class="stat-label">Total Check-Ins</div>
+        <div class="heatmap-wrapper" id="liveHeatmapWrapper">
+          <!-- Dynamically populated real squares -->
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon amber">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-        </div>
-        <div class="stat-details">
-          <div class="stat-value" id="globalYearRate">0%</div>
-          <div class="stat-label">Consistency Rate</div>
+      <!-- Recent Real Events Feed -->
+      <div class="recent-events-section">
+        <h4>Recent Public GitHub Activity Stream</h4>
+        <div id="recentEventsList" class="recent-events-list">
+          <!-- Real event items -->
         </div>
       </div>
     </section>
 
-    <!-- Quick Today Action Bar -->
-    <section class="today-banner">
-      <div class="today-banner-info">
-        <span class="today-pill">Today's Focus</span>
-        <h2 id="currentDateDisplay">Loading date...</h2>
+    <!-- CUSTOM HABITS TRACKER SECTION -->
+    <section class="custom-habits-section">
+      <div class="section-header">
+        <div>
+          <h3>Personal Habits & Goal Heatmaps</h3>
+          <p class="section-sub">Track daily offline or dev routines alongside your GitHub code velocity.</p>
+        </div>
       </div>
-      <div class="today-habit-chips" id="todayChipsContainer">
-        <!-- Dynamic chips for quick toggle today -->
+
+      <div class="today-banner">
+        <div class="today-banner-info">
+          <span class="today-pill">Today's Focus</span>
+          <h2 id="currentDateDisplay">Today</h2>
+        </div>
+        <div class="today-habit-chips" id="todayChipsContainer"></div>
       </div>
+
+      <main id="habitsList" class="habits-list"></main>
     </section>
 
-    <!-- Filter & View Controls -->
-    <div class="controls-bar">
-      <div class="search-box">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <input type="text" id="searchInput" placeholder="Filter habits or categories...">
-      </div>
-
-      <div class="category-filters" id="categoryFilters">
-        <button class="filter-btn active" data-category="all">All</button>
-        <button class="filter-btn" data-category="Coding">Coding</button>
-        <button class="filter-btn" data-category="Health">Health</button>
-        <button class="filter-btn" data-category="Learning">Learning</button>
-        <button class="filter-btn" data-category="Mindset">Mindset</button>
-      </div>
-
-      <div class="view-range-selector">
-        <label for="timeRangeSelect">Grid Span:</label>
-        <select id="timeRangeSelect">
-          <option value="52">1 Year (52 wks)</option>
-          <option value="26">6 Months (26 wks)</option>
-          <option value="12">3 Months (12 wks)</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Habits List / Heatmap Container -->
-    <main id="habitsList" class="habits-list">
-      <!-- Habit cards rendered here -->
-    </main>
-
-    <!-- Footer info -->
     <footer class="app-footer">
       <div class="footer-hint">
-        <kbd>Tip</kbd> Click any square on the heatmap to toggle that day's completion status.
+        <kbd>Live API</kbd> Powered by GitHub Public REST API & Real Contribution Matrix
       </div>
       <div class="footer-meta">
-        Built with voice-guided rapid development &bull; <span class="accent-text">HabitGrid</span>
+        Built with voice-guided rapid development &bull; <span class="accent-text">GitPulse</span>
       </div>
     </footer>
   </div>
 
-  <!-- Create/Edit Habit Modal -->
+  <!-- Create Custom Habit Modal -->
   <div class="modal-backdrop" id="habitModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 id="modalTitle">Create New Habit</h3>
+        <h3 id="modalTitle">Create Custom Habit</h3>
         <button class="modal-close-btn" id="closeModalBtn">&times;</button>
       </div>
       <form id="habitForm">
         <input type="hidden" id="editHabitId">
-        
         <div class="form-group">
           <label for="habitName">Habit Name</label>
-          <input type="text" id="habitName" placeholder="e.g. Daily LeetCode / Open Source" required>
+          <input type="text" id="habitName" placeholder="e.g. System Design / LeetCode" required>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label for="habitCategory">Category</label>
             <select id="habitCategory">
               <option value="Coding">Coding</option>
               <option value="Health">Health & Fitness</option>
-              <option value="Learning">Learning & Reading</option>
-              <option value="Mindset">Mindset & Focus</option>
-              <option value="Creativity">Creativity</option>
+              <option value="Learning">Learning</option>
+              <option value="Mindset">Mindset</option>
             </select>
           </div>
-
           <div class="form-group">
             <label for="habitFrequency">Target Days / Week</label>
             <select id="habitFrequency">
               <option value="7">Every day (7x/week)</option>
               <option value="5">Workdays (5x/week)</option>
               <option value="3">3 times a week</option>
-              <option value="1">Weekly goal (1x/week)</option>
             </select>
           </div>
         </div>
-
         <div class="form-group">
           <label>Theme Color</label>
           <div class="color-picker" id="colorPicker">
-            <button type="button" class="color-swatch emerald selected" data-color="emerald" title="GitHub Emerald"></button>
-            <button type="button" class="color-swatch cyan" data-color="cyan" title="Cyber Cyan"></button>
-            <button type="button" class="color-swatch purple" data-color="purple" title="Electric Violet"></button>
-            <button type="button" class="color-swatch amber" data-color="amber" title="Sunset Amber"></button>
-            <button type="button" class="color-swatch rose" data-color="rose" title="Neon Rose"></button>
+            <button type="button" class="color-swatch emerald selected" data-color="emerald"></button>
+            <button type="button" class="color-swatch cyan" data-color="cyan"></button>
+            <button type="button" class="color-swatch purple" data-color="purple"></button>
+            <button type="button" class="color-swatch amber" data-color="amber"></button>
+            <button type="button" class="color-swatch rose" data-color="rose"></button>
           </div>
         </div>
-
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="saveHabitBtn">Save Habit</button>
+          <button type="submit" class="btn btn-primary">Save Habit</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Dynamic Floating Tooltip -->
   <div id="gridTooltip" class="grid-tooltip"></div>
-
   <script src="app.js"></script>
 </body>
 </html>
